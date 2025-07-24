@@ -5,11 +5,13 @@ import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCeoqpWzx9WoU3EvifV7T3Faa3nTYFw_Jw",
   authDomain: "share-screen-91136.firebaseapp.com",
+  databaseURL: "https://share-screen-91136-default-rtdb.firebaseio.com", // ✅ ADD THIS
   projectId: "share-screen-91136",
   storageBucket: "share-screen-91136.firebasestorage.app",
   messagingSenderId: "847326052998",
   appId: "1:847326052998:web:d003b856fbc80ecfc98707"
 };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
