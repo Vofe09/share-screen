@@ -9,15 +9,19 @@ const isViewer = location.pathname.includes('room');
 const peer = new RTCPeerConnection(configuration);
 
 if (isViewer) {
+  // 🎥 Viewer logic
   const video = document.getElementById('remoteVideo');
 
   peer.ontrack = (e) => {
-    console.log("✅ Viewer received stream!");
+    console.log("✅ Viewer received stream!", e.streams[0]);
     video.srcObject = e.streams[0];
+
+    video.onloadedmetadata = () => {
+      video.play().catch(err => console.error("🚫 play() error:", err));
+    };
   };
 
   const roomRef = ref(db, `rooms/${roomId}`);
-
   onValue(roomRef, async (snapshot) => {
     const data = snapshot.val();
     if (data?.offer && !peer.currentRemoteDescription) {
@@ -47,25 +51,26 @@ if (isViewer) {
   };
 
 } else {
-  // SHARER SIDE
+  // 🖥 Sharer logic
   const linkEl = document.getElementById('link');
   const startBtn = document.getElementById('start');
+  const statusEl = document.getElementById('status');
+  const preview = document.getElementById('localPreview');
+
   linkEl.innerText = `${location.origin}/room.html#${roomId}`;
 
   startBtn.onclick = async () => {
     const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    console.log("🖥️ Stream captured:", stream);
 
-    // Show "You're streaming" message
-    document.getElementById('status').style.display = 'block';
+    // Show status + preview
+    if (statusEl) statusEl.style.display = 'block';
+    if (preview) {
+      preview.srcObject = stream;
+      preview.style.display = 'block';
+    }
 
-    // Show stream preview
-    const preview = document.getElementById('localPreview');
-    preview.srcObject = stream;
-    preview.style.display = 'block';
-
-    // Add tracks to peer connection
     stream.getTracks().forEach(track => peer.addTrack(track, stream));
-
     console.log("🖥️ Sharing screen...");
 
     const offer = await peer.createOffer();
@@ -84,14 +89,13 @@ if (isViewer) {
     onValue(roomRef, async (snapshot) => {
       const data = snapshot.val();
       if (
-    data?.answer &&
-    peer.signalingState === 'have-local-offer' &&
-    !peer.currentRemoteDescription
-    ) {
-    console.log("📨 Answer received by sharer");
-    await peer.setRemoteDescription(data.answer);
-    }
-
+        data?.answer &&
+        peer.signalingState === 'have-local-offer' &&
+        !peer.currentRemoteDescription
+      ) {
+        console.log("📨 Answer received by sharer");
+        await peer.setRemoteDescription(data.answer);
+      }
     });
   };
 }
