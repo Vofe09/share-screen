@@ -39,7 +39,11 @@
 <body>
 
   <h1>🔴 Live Stream</h1>
-  <video id="remoteVideo" autoplay playsinline muted controls></video>
+
+  <!-- Важно: добавляем muted -->
+  <video id="remoteVideo" autoplay muted playsinline controls></video>
+
+  <!-- Статус -->
   <div id="status">⏳ Waiting for stream...</div>
 
   <script type="module" src="/main.js"></script>

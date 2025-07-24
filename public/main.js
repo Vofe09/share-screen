@@ -12,16 +12,21 @@ if (isViewer) {
   // 🎥 Viewer
   const video = document.getElementById('remoteVideo');
 
-  peer.ontrack = (e) => {
-    console.log("✅ Viewer received stream!");
+    peer.ontrack = (e) => {
+    console.log("✅ Viewer received stream!", e.streams[0]);
     video.srcObject = e.streams[0];
 
-    video.onloadedmetadata = () => {
-      video.play().catch(err => console.error("🚫 play() error:", err));
+    // Попытка воспроизведения сразу
+    setTimeout(() => {
+        video.play().then(() => {
+        document.getElementById('status').innerText = "✅ Stream is live!";
+        }).catch(err => {
+        console.error("🚫 Failed to autoplay:", err);
+        document.getElementById('status').innerText = "⚠️ Click the play button to start the stream";
+        });
+    }, 200);
     };
 
-    document.getElementById('status').textContent = '✅ Stream is live!';
-  };
 
   const roomRef = ref(db, `rooms/${roomId}`);
   onValue(roomRef, async (snapshot) => {
