@@ -9,24 +9,19 @@ const isViewer = location.pathname.includes('room');
 const peer = new RTCPeerConnection(configuration);
 
 if (isViewer) {
-  // 🎥 Viewer
+  // 🎥 Viewer logic
   const video = document.getElementById('remoteVideo');
+  const status = document.getElementById('status');
 
-    peer.ontrack = (e) => {
+  peer.ontrack = (e) => {
     console.log("✅ Viewer received stream!", e.streams[0]);
     video.srcObject = e.streams[0];
-
-    // Попытка воспроизведения сразу
-    setTimeout(() => {
-        video.play().then(() => {
-        document.getElementById('status').innerText = "✅ Stream is live!";
-        }).catch(err => {
-        console.error("🚫 Failed to autoplay:", err);
-        document.getElementById('status').innerText = "⚠️ Click the play button to start the stream";
-        });
-    }, 200);
+    video.onloadedmetadata = () => {
+      video.play().catch(err => console.error("🚫 play() error:", err));
     };
-
+    status.innerText = '✅ Stream is live!';
+    status.style.color = 'lime';
+  };
 
   const roomRef = ref(db, `rooms/${roomId}`);
   onValue(roomRef, async (snapshot) => {
@@ -58,7 +53,7 @@ if (isViewer) {
   };
 
 } else {
-  // 🖥 Sharer
+  // 🖥 Sharer logic
   const linkEl = document.getElementById('link');
   const startBtn = document.getElementById('start');
   const statusEl = document.getElementById('status');
@@ -71,9 +66,15 @@ if (isViewer) {
     console.log("🖥️ Stream captured:", stream);
 
     // Show status + preview
-    statusEl.style.display = 'block';
-    preview.srcObject = stream;
-    preview.style.display = 'block';
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerText = '🟢 You are streaming!';
+    }
+
+    if (preview) {
+      preview.srcObject = stream;
+      preview.style.display = 'block';
+    }
 
     stream.getTracks().forEach(track => peer.addTrack(track, stream));
     console.log("🖥️ Sharing screen...");
@@ -90,22 +91,21 @@ if (isViewer) {
       }
     };
 
+    // 🛠 Флаг, чтобы не применять ответ повторно
+    let remoteSet = false;
+
     const roomRef = ref(db, `rooms/${roomId}`);
     onValue(roomRef, async (snapshot) => {
       const data = snapshot.val();
-      if (
-    data?.answer &&
-    peer.signalingState === 'have-local-offer' &&
-    !peer.remoteDescription
-    ) {
-    console.log("📨 Answer received by sharer");
-    try {
-        await peer.setRemoteDescription(data.answer);
-    } catch (e) {
-        console.warn("⚠️ setRemoteDescription error (sharer):", e);
-    }
-}
-
+      if (data?.answer && !remoteSet) {
+        try {
+          await peer.setRemoteDescription(data.answer);
+          console.log("📨 Answer received and applied by sharer");
+          remoteSet = true;
+        } catch (e) {
+          console.warn("⚠️ setRemoteDescription error (sharer):", e);
+        }
+      }
     });
   };
 }
