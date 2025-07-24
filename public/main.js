@@ -53,8 +53,19 @@ if (isViewer) {
   linkEl.innerText = `${location.origin}/room.html#${roomId}`;
 
   startBtn.onclick = async () => {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+
+    // Show "You're streaming" message
+    document.getElementById('status').style.display = 'block';
+
+    // Show stream preview
+    const preview = document.getElementById('localPreview');
+    preview.srcObject = stream;
+    preview.style.display = 'block';
+
+    // Add tracks to peer connection
     stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
     console.log("🖥️ Sharing screen...");
 
     const offer = await peer.createOffer();
