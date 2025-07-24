@@ -1,26 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Screen Share</title>
 </head>
 <body style="background:#111; color:white; font-family:sans-serif; text-align:center; padding:20px;">
 
-  <h1>Share your screen</h1>
+  <h1>🖥 Start Screen Sharing</h1>
   <button id="start">Start Sharing</button>
-  <p>Share this link: <span id="link" style="color: #0f0;"></span></p>
+  <p>Viewer link: <span id="link" style="color: #0f0;"></span></p>
+  <h2 id="status" style="display: none;">🟢 Streaming</h2>
 
-  <h1 id="status" style="color: lime; display: none;">🟢 You are streaming!</h1>
-
-  <video id="localPreview" autoplay muted playsinline style="
-    width: 80%;
-    max-width: 1000px;
-    margin-top: 20px;
-    border: 3px solid lime;
-    border-radius: 15px;
-    box-shadow: 0 0 10px lime;
-    display: none;
-  "></video>
+  <video id="localPreview" autoplay muted playsinline style="display:none; width: 80%; border: 3px solid lime; margin-top: 20px; border-radius: 12px;"></video>
 
   <script type="module" src="main.js"></script>
 </body>

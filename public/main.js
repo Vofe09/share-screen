@@ -1,109 +1,95 @@
 import { db, ref, onValue, set } from '/firebase.js';
 
-const configuration = {
+const peer = new RTCPeerConnection({
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-};
+});
 
-const roomId = location.hash.substring(1) || Math.random().toString(36).substring(2);
+const roomId = location.hash.slice(1) || Math.random().toString(36).substring(2);
 const isViewer = location.pathname.includes('room');
-const peer = new RTCPeerConnection(configuration);
+
+const roomRef = ref(db, `rooms/${roomId}`);
 
 if (isViewer) {
-  // 🎥 Viewer logic
-  const video = document.getElementById('remoteVideo');
+  // ===== ВИЗУАЛИЗАТОР =====
+  const remoteVideo = document.getElementById('remoteVideo');
   const status = document.getElementById('status');
 
-  peer.ontrack = (e) => {
-    console.log("✅ Viewer received stream!", e.streams[0]);
-    video.srcObject = e.streams[0];
-    video.onloadedmetadata = () => {
-      video.play().catch(err => console.error("🚫 play() error:", err));
-    };
-    status.innerText = '✅ Stream is live!';
-    status.style.color = 'lime';
+  peer.ontrack = (event) => {
+    console.log("✅ Received track");
+    remoteVideo.srcObject = event.streams[0];
+    status.textContent = "✅ Stream is live!";
   };
 
-  const roomRef = ref(db, `rooms/${roomId}`);
-  onValue(roomRef, async (snapshot) => {
-    const data = snapshot.val();
-    if (data?.offer && !peer.currentRemoteDescription) {
-      console.log("📡 Offer received by viewer");
-      await peer.setRemoteDescription(data.offer);
+  peer.onicecandidate = (e) => {
+    if (e.candidate) {
+      set(ref(db, `rooms/${roomId}/viewerIce`), e.candidate.toJSON());
+    }
+  };
+
+  onValue(roomRef, async (snap) => {
+    const data = snap.val();
+    if (!data || !data.offer) return;
+
+    try {
+      await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
       await set(roomRef, { ...data, answer });
-      console.log("📨 Answer sent to Firebase");
+    } catch (e) {
+      console.error("Viewer error:", e);
     }
 
-    if (data?.iceCandidate) {
+    if (data.sharerIce) {
       try {
-        await peer.addIceCandidate(data.iceCandidate);
-        console.log("📡 ICE candidate added by viewer");
+        await peer.addIceCandidate(new RTCIceCandidate(data.sharerIce));
       } catch (e) {
-        console.error("ICE error (viewer):", e);
+        console.error("Error adding sharer ICE:", e);
       }
     }
   });
 
-  peer.onicecandidate = (event) => {
-    if (event.candidate) {
-      set(ref(db, `rooms/${roomId}/iceCandidate`), event.candidate.toJSON());
-      console.log("📤 ICE candidate sent by viewer");
-    }
-  };
-
 } else {
-  // 🖥 Sharer logic
-  const linkEl = document.getElementById('link');
-  const startBtn = document.getElementById('start');
-  const statusEl = document.getElementById('status');
+  // ===== ШАРЕР =====
+  const link = document.getElementById('link');
+  const status = document.getElementById('status');
   const preview = document.getElementById('localPreview');
+  const startBtn = document.getElementById('start');
 
-  linkEl.innerText = `${location.origin}/room.html#${roomId}`;
+  link.textContent = `${location.origin}/room.html#${roomId}`;
 
   startBtn.onclick = async () => {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-    console.log("🖥️ Stream captured:", stream);
-
-    // Show status + preview
-    if (statusEl) {
-      statusEl.style.display = 'block';
-      statusEl.innerText = '🟢 You are streaming!';
-    }
-
-    if (preview) {
-      preview.srcObject = stream;
-      preview.style.display = 'block';
-    }
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    preview.srcObject = stream;
+    preview.style.display = 'block';
+    status.style.display = 'block';
 
     stream.getTracks().forEach(track => peer.addTrack(track, stream));
-    console.log("🖥️ Sharing screen...");
 
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
-    await set(ref(db, `rooms/${roomId}`), { offer });
-    console.log("📡 Offer written to Firebase");
+    await set(roomRef, { offer });
 
-    peer.onicecandidate = (event) => {
-      if (event.candidate) {
-        set(ref(db, `rooms/${roomId}/iceCandidate`), event.candidate.toJSON());
-        console.log("📤 ICE candidate sent by sharer");
+    peer.onicecandidate = (e) => {
+      if (e.candidate) {
+        set(ref(db, `rooms/${roomId}/sharerIce`), e.candidate.toJSON());
       }
     };
 
-    // 🛠 Флаг, чтобы не применять ответ повторно
-    let remoteSet = false;
-
-    const roomRef = ref(db, `rooms/${roomId}`);
-    onValue(roomRef, async (snapshot) => {
-      const data = snapshot.val();
-      if (data?.answer && !remoteSet) {
+    onValue(roomRef, async (snap) => {
+      const data = snap.val();
+      if (data?.answer && peer.signalingState === 'have-local-offer') {
         try {
-          await peer.setRemoteDescription(data.answer);
-          console.log("📨 Answer received and applied by sharer");
-          remoteSet = true;
+          await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
         } catch (e) {
           console.warn("⚠️ setRemoteDescription error (sharer):", e);
+        }
+      }
+
+      if (data.viewerIce) {
+        try {
+          await peer.addIceCandidate(new RTCIceCandidate(data.viewerIce));
+        } catch (e) {
+          console.warn("⚠️ Error adding viewer ICE:", e);
         }
       }
     });

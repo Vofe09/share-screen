@@ -2,50 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Watching Stream</title>
-  <style>
-    body {
-      background: #121212;
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-
-    h1 {
-      margin-bottom: 20px;
-    }
-
-    video {
-      width: 80%;
-      max-width: 1200px;
-      border: 4px solid #00ff99;
-      border-radius: 20px;
-      box-shadow: 0 0 20px #00ff99;
-      background: black;
-    }
-
-    #status {
-      margin-top: 15px;
-      font-size: 1.2em;
-      color: #0f0;
-    }
-  </style>
+  <title>Watch Stream</title>
 </head>
-<body>
-
-  <h1>🔴 Live Stream</h1>
-
-  <!-- Важно: добавляем muted -->
-  <video id="remoteVideo" autoplay muted playsinline controls></video>
-
-  <!-- Статус -->
+<body style="background:#121212; color:white; font-family:sans-serif; text-align:center; padding:20px;">
+  <h1>📺 Watching Stream</h1>
+  <video id="remoteVideo" autoplay playsinline controls style="width: 80%; border: 3px solid cyan; border-radius: 12px; background:black;"></video>
   <div id="status">⏳ Waiting for stream...</div>
 
-  <script type="module" src="/main.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
