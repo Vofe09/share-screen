@@ -9,16 +9,16 @@ const isViewer = location.pathname.includes('room');
 const peer = new RTCPeerConnection(configuration);
 
 if (isViewer) {
-  // 🎥 Viewer logic
   const video = document.getElementById('remoteVideo');
+  const status = document.getElementById('status');
+
+  let stream = new MediaStream();
+  video.srcObject = stream;
 
   peer.ontrack = (e) => {
-    console.log("✅ Viewer received stream!", e.streams[0]);
-    video.srcObject = e.streams[0];
-
-    video.onloadedmetadata = () => {
-      video.play().catch(err => console.error("🚫 play() error:", err));
-    };
+    console.log("✅ Viewer received track:", e.track);
+    stream.addTrack(e.track);
+    status.textContent = '✅ Stream is live!';
   };
 
   const roomRef = ref(db, `rooms/${roomId}`);
@@ -51,7 +51,6 @@ if (isViewer) {
   };
 
 } else {
-  // 🖥 Sharer logic
   const linkEl = document.getElementById('link');
   const startBtn = document.getElementById('start');
   const statusEl = document.getElementById('status');
@@ -63,12 +62,10 @@ if (isViewer) {
     const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
     console.log("🖥️ Stream captured:", stream);
 
-    // Show status + preview
-    if (statusEl) statusEl.style.display = 'block';
-    if (preview) {
-      preview.srcObject = stream;
-      preview.style.display = 'block';
-    }
+    // UI update
+    statusEl.style.display = 'block';
+    preview.srcObject = stream;
+    preview.style.display = 'block';
 
     stream.getTracks().forEach(track => peer.addTrack(track, stream));
     console.log("🖥️ Sharing screen...");
