@@ -1,4 +1,4 @@
-import { db, ref, onValue, set } from './firebase.js';
+import { db, ref, onValue, set } from '/firebase.js';
 
 const configuration = {
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
@@ -12,44 +12,60 @@ if (isViewer) {
   const video = document.getElementById('remoteVideo');
 
   peer.ontrack = (e) => {
+    console.log("✅ Viewer received stream!");
     video.srcObject = e.streams[0];
   };
 
   const roomRef = ref(db, `rooms/${roomId}`);
+
   onValue(roomRef, async (snapshot) => {
     const data = snapshot.val();
     if (data?.offer && !peer.currentRemoteDescription) {
+      console.log("📡 Offer received by viewer");
       await peer.setRemoteDescription(data.offer);
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
       await set(roomRef, { ...data, answer });
+      console.log("📨 Answer sent to Firebase");
     }
 
     if (data?.iceCandidate) {
       try {
         await peer.addIceCandidate(data.iceCandidate);
-      } catch (e) {}
+        console.log("📡 ICE candidate added by viewer");
+      } catch (e) {
+        console.error("ICE error (viewer):", e);
+      }
     }
   });
 
   peer.onicecandidate = (event) => {
     if (event.candidate) {
       set(ref(db, `rooms/${roomId}/iceCandidate`), event.candidate.toJSON());
+      console.log("📤 ICE candidate sent by viewer");
     }
   };
+
 } else {
-  document.getElementById('link').innerText = `${location.origin}/room.html#${roomId}`;
-  document.getElementById('start').onclick = async () => {
+  // SHARER SIDE
+  const linkEl = document.getElementById('link');
+  const startBtn = document.getElementById('start');
+  linkEl.innerText = `${location.origin}/room.html#${roomId}`;
+
+  startBtn.onclick = async () => {
     const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
     stream.getTracks().forEach(track => peer.addTrack(track, stream));
+    console.log("🖥️ Sharing screen...");
 
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
     await set(ref(db, `rooms/${roomId}`), { offer });
+    console.log("📡 Offer written to Firebase");
 
     peer.onicecandidate = (event) => {
       if (event.candidate) {
         set(ref(db, `rooms/${roomId}/iceCandidate`), event.candidate.toJSON());
+        console.log("📤 ICE candidate sent by sharer");
       }
     };
 
@@ -57,6 +73,7 @@ if (isViewer) {
     onValue(roomRef, async (snapshot) => {
       const data = snapshot.val();
       if (data?.answer && !peer.currentRemoteDescription) {
+        console.log("📨 Answer received by sharer");
         await peer.setRemoteDescription(data.answer);
       }
     });
