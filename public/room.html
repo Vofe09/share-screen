@@ -6,12 +6,20 @@
   <style>
     body {
       background: #121212;
+      color: white;
+      font-family: sans-serif;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       height: 100vh;
       margin: 0;
     }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
     video {
       width: 80%;
       max-width: 1200px;
@@ -20,10 +28,25 @@
       box-shadow: 0 0 20px #00ff99;
       background: black;
     }
+
+    #status {
+      margin-top: 15px;
+      font-size: 1.2em;
+      color: #0f0;
+    }
   </style>
 </head>
 <body>
-  <video id="remoteVideo" autoplay playsinline></video>
+
+  <h1>🔴 Live Stream</h1>
+
+  <!-- Видео с трансляцией -->
+  <video id="remoteVideo" autoplay playsinline controls></video>
+
+  <!-- Статус -->
+  <div id="status">⏳ Waiting for stream...</div>
+
+  <!-- Основной код -->
   <script type="module" src="/main.js"></script>
 </body>
 </html>
