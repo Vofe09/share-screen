@@ -72,10 +72,15 @@ if (isViewer) {
     const roomRef = ref(db, `rooms/${roomId}`);
     onValue(roomRef, async (snapshot) => {
       const data = snapshot.val();
-      if (data?.answer && !peer.currentRemoteDescription) {
-        console.log("📨 Answer received by sharer");
-        await peer.setRemoteDescription(data.answer);
-      }
+      if (
+    data?.answer &&
+    peer.signalingState === 'have-local-offer' &&
+    !peer.currentRemoteDescription
+    ) {
+    console.log("📨 Answer received by sharer");
+    await peer.setRemoteDescription(data.answer);
+    }
+
     });
   };
 }
